@@ -1,7 +1,7 @@
 import axios from "axios";
-import Ffmpeg from "fluent-ffmpeg";
+import Ffmpeg, { FfmpegCommand } from "fluent-ffmpeg";
 import { createWriteStream } from "fs";
-import { writeFile } from "fs/promises";
+import { rename, rm, writeFile } from "fs/promises";
 import Snoowrap, { Submission } from "snoowrap";
 import { Readable } from "stream";
 import { VideoNotFoundError } from "./util/errors";
@@ -62,7 +62,7 @@ export async function getVideoLinks(
   return links;
 }
 
-function areVideosLeft(
+export function areVideosLeft(
   subreddits: string[],
   topPosts: Record<string, Submission[]>
 ) {
@@ -91,25 +91,28 @@ export async function downloadVideos(urls: string[]) {
         throw new VideoNotFoundError();
       }
       const fileName = getVideoNameFromUrl(url);
+      const tmpVideoPath = `./tmp/${fileName}_tmp.mp4`;
       const videoPath = `./tmp/${fileName}.mp4`;
 
+      await writeFile(tmpVideoPath, video.value.data);
+
       if (audio.status === "rejected") {
-        await writeFile(videoPath, video.value.data);
+        await rename(tmpVideoPath, videoPath);
         return videoPath;
       }
-      const outputStream = createWriteStream(videoPath);
-      const videoStream = Readable.from(video.value.data.toString());
       const audioStream = Readable.from(audio.value.data.toString());
+
       await runPromisifiedFfmpeg(
         Ffmpeg()
-          .input(videoStream)
-          .input(audioStream)
+          .input(tmpVideoPath)
+          .addInput(audioStream)
           .map("0:v")
           .map("1:a")
           .addOption("-c:v", "copy", "--shortest")
           .format("mp4")
-          .output(outputStream)
+          .output(videoPath)
       );
+      await rm(tmpVideoPath);
       return videoPath;
     });
     promises.push(promise);

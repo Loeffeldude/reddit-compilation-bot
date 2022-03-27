@@ -23,7 +23,7 @@ export async function loadConfig(configPath: string) {
 }
 
 export function extendOptions(config: Config, options: Options): Config {
-  return { ...options, ...config };
+  return { ...config, ...options };
 }
 // Check if a field of config is set if it is of the correct type
 export async function validate(config: Config): Promise<boolean> {
@@ -33,4 +33,14 @@ export async function validate(config: Config): Promise<boolean> {
   } catch (e) {
     return false;
   }
+}
+
+export function configParseNumbers(config: Options) {
+  const clone = { ...config };
+
+  if (clone.minLength) clone.minLength = Number(clone.minLength);
+  if (clone.maxLength) clone.maxLength = Number(clone.maxLength);
+  if (clone.targetVideoLength)
+    clone.targetVideoLength = Number(clone.targetVideoLength);
+  return clone;
 }

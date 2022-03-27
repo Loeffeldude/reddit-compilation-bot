@@ -1,20 +1,23 @@
 import { getAudioUrl, getVideoNameFromUrl, randomIndex } from "./util";
-
-test("should return right url for video", () => {
-  expect(
-    getAudioUrl("https://v.redd.it/testtest/DASH_480.mp4?source=fallback")
-  ).toBe("https://v.redd.it/testtest/DASH_audio.mp4");
+describe("getAudioUrl", () => {
+  test("should return right url for video", () => {
+    expect(
+      getAudioUrl("https://v.redd.it/testtest/DASH_480.mp4?source=fallback")
+    ).toBe("https://v.redd.it/testtest/DASH_audio.mp4");
+  });
 });
 
-test("should return the unique name of a video", () => {
-  expect(
-    getVideoNameFromUrl(
-      "https://v.redd.it/testtest/DASH_480.mp4?source=fallback"
-    )
-  ).toBe("testtest");
+describe("getVideoNameFromUrl", () => {
+  test("should return the unique name of a video", () => {
+    expect(
+      getVideoNameFromUrl(
+        "https://v.redd.it/testtest/DASH_480.mp4?source=fallback"
+      )
+    ).toBe("testtest");
+  });
 });
 
-describe("random index for a given length", () => {
+describe("rrandomIndex", () => {
   afterEach(() => {
     jest.spyOn(global.Math, "random").mockRestore();
   });
