@@ -12,5 +12,6 @@ export async function saveMergedVideo(
     command.mergeAdd(videoPath);
   }
   command.mergeToFile(resultPath);
+  command.output(resultPath);
   await runPromisifiedFfmpeg(command);
 }

@@ -1,5 +1,7 @@
 {
+  "include": ["src/**/*", "tests/**/*"],
   "compilerOptions": {
+    "outDir": "./dist",
     "target": "ES6",
     "module": "commonjs",
     "lib": ["ES6"],
@@ -8,8 +10,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
 		"emitDecoratorMetadata": true,
-		"experimentalDecorators": true
+		"experimentalDecorators": true,
+    "strictNullChecks": true
   },
-
   "$schema": "https://json.schemastore.org/tsconfig"
 }

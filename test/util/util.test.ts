@@ -3,7 +3,7 @@ import {
   getVideoNameFromUrl,
   randomIndex,
   isReseloution,
-} from "./util";
+} from "../../src/util/util";
 describe("getAudioUrl", () => {
   test("should return right url for video", () => {
     expect(
