@@ -2,6 +2,7 @@ import chalk from "chalk";
 
 export const logger = {
   logging: true,
+  debugLogging: false,
   log(message: unknown) {
     console.log(chalk.white(message));
   },
@@ -15,6 +16,7 @@ export const logger = {
     if (this.logging) console.error(chalk.red("ERROR:") + ` ${message}`);
   },
   debug(message: unknown) {
-    if (this.logging) console.error(chalk.green("DEBUG:") + ` ${message}`);
+    if (this.logging && this.debugLogging)
+      console.error(chalk.green("DEBUG:") + ` ${message}`);
   },
 };

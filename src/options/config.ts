@@ -4,6 +4,8 @@ import { FileNotFoundError, InvalidConfigError } from "../util/errors";
 import { JSONSchemaType } from "ajv";
 import Ajv from "ajv";
 
+export type NonUndefined<T> = { [P in keyof T]-?: T[P] };
+
 export interface Config {
   ffmpegPath: string;
   output: string;
@@ -13,6 +15,7 @@ export interface Config {
   minLength: number;
   maxLength: number;
   targetVideoLength: number;
+  resolution: string;
   hideUsed: boolean;
   includeHidden: boolean;
   tempDir: string;
@@ -22,8 +25,6 @@ export interface Config {
   redditPassword: string;
   verbose: boolean;
 }
-
-export type NonUndefined<T> = { [P in keyof T]-?: T[P] };
 
 export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
   type: "object",
@@ -40,6 +41,7 @@ export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
     minLength: { type: "number" },
     maxLength: { type: "number" },
     targetVideoLength: { type: "number" },
+    resolution: { type: "string" },
     hideUsed: { type: "boolean" },
     includeHidden: { type: "boolean" },
     tempDir: { type: "string" },
@@ -54,6 +56,14 @@ export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
 };
 
 export type Options = Omit<Config, "categories"> & { input?: string };
+
+export const resolutions: Record<string, string> = {
+  "1080p": "1920x1080",
+  "720p": "1280x720",
+  "480p": "854x480",
+  "360p": "640x360",
+  "240p": "426x240",
+};
 
 export async function loadConfig(configPath: string) {
   try {

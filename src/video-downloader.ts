@@ -1,9 +1,9 @@
 import axios from "axios";
+import { Command } from "commander";
 import Ffmpeg from "fluent-ffmpeg";
 import { rename, rm, writeFile, mkdir } from "fs/promises";
 import path from "path";
 import Snoowrap, { Submission } from "snoowrap";
-import { Readable } from "stream";
 import { VideoNotFoundError } from "./util/errors";
 import { logger } from "./util/logger";
 import {
@@ -12,7 +12,7 @@ import {
   randomIndex,
   runPromisifiedFfmpeg,
 } from "./util/util";
-
+import { Presets, SingleBar } from "cli-progress";
 export async function getVideoLinks(
   subreddits: string[],
   targetVideoLength: number,
@@ -77,9 +77,9 @@ export async function getVideoTopVideoPosts(
   subreddit: string,
   client: Snoowrap
 ) {
-  return (await client.getSubreddit(subreddit).getTop()).filter(
-    (post) => post.is_video && post.is_reddit_media_domain
-  );
+  return (
+    await client.getSubreddit(subreddit).getTop({ time: "week", limit: 500 })
+  ).filter((post) => post.is_video && post.is_reddit_media_domain);
 }
 
 export async function downloadVideos(urls: string[], tmpPath: string) {
@@ -87,45 +87,73 @@ export async function downloadVideos(urls: string[], tmpPath: string) {
 
   await mkdir(tmpPath, { recursive: true });
 
+  const bar = new SingleBar({}, Presets.legacy);
+
+  bar.start(urls.length, 0);
+
   for (const url of urls) {
     const promise = Promise.allSettled([
       axios.get<Buffer>(url, { responseType: "arraybuffer" }),
       axios.get<Buffer>(getAudioUrl(url), { responseType: "arraybuffer" }),
     ]).then(async ([video, audio]) => {
       if (video.status == "rejected") {
-        throw new VideoNotFoundError(`The video at ${url} was not found`);
+        return Promise.reject(new VideoNotFoundError(url));
+        //throw new VideoNotFoundError(`The video at ${url} was not found`);
       }
       const fileName = getVideoNameFromUrl(url);
-      const tmpVideoPath = path.join(tmpPath, `${fileName}_tmp.mp4`);
-      const tmpAudioPath = path.join(tmpPath, `${fileName}_tmp_audio.mp4`);
-
-      const videoPath = path.join(tmpPath, `${fileName}.mp4`);
-
-      await writeFile(tmpVideoPath, video.value.data);
-
-      if (audio.status === "rejected") {
-        await rename(tmpVideoPath, videoPath);
-        return videoPath;
-      }
-
-      await writeFile(tmpAudioPath, audio.value.data);
-
-      await runPromisifiedFfmpeg(
-        Ffmpeg()
-          .input(tmpVideoPath)
-          .addInput(tmpAudioPath)
-          .addOption("-map", "0:v")
-          .addOption("-map", "1:a?")
-          .addOption("-c:v", "copy")
-          .addOption("-shortest")
-          .output(videoPath)
+      const tmpVideoPath = path.resolve(
+        path.join(tmpPath, `${fileName}_tmp.mp4`)
+      );
+      const tmpAudioPath = path.resolve(
+        path.join(tmpPath, `${fileName}_tmp_audio.mp4`)
       );
 
+      const videoPath = path.resolve(path.join(tmpPath, `${fileName}.mp4`));
+
+      await writeFile(tmpVideoPath, video.value.data);
+      if (audio.status === "fulfilled")
+        await writeFile(tmpAudioPath, audio.value.data);
+
+      const command = Ffmpeg().input(tmpVideoPath);
+
+      if (audio.status === "fulfilled") {
+        command.addInput(tmpAudioPath);
+      } else {
+        command.addInput("anullsrc=n=1").inputOption("-f", "lavfi");
+      }
+
+      command
+        .addOption("-map", "0:v")
+        .addOption("-map", "1:a?")
+        .addOption("-c:v", "copy")
+        .addOption("-shortest")
+        .output(videoPath);
+
+      await runPromisifiedFfmpeg(command);
+
       await rm(tmpVideoPath);
+      if (audio.status === "fulfilled") await rm(tmpAudioPath);
+
+      bar.increment();
 
       return videoPath;
     });
     promises.push(promise);
   }
-  return Promise.all(promises);
+  const result = await Promise.allSettled(promises);
+
+  bar.stop();
+
+  result.forEach((item) => {
+    if (item.status === "rejected") {
+      logger.error(item.reason.message);
+    }
+  });
+
+  return result.reduce<string[]>((acc, item) => {
+    if (item.status === "fulfilled") {
+      acc.push(item.value);
+    }
+    return acc;
+  }, []);
 }

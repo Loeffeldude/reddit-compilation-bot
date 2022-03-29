@@ -307,8 +307,8 @@ describe("downloadVideos", () => {
     expect(axiosMock).toBeCalled();
     // OS agnostic
     expect(result).toEqual([
-      path.join("./test/", "gaming1.mp4"),
-      path.join("./test/", "gaming2.mp4"),
+      path.resolve(path.join("./test/", "gaming1.mp4")),
+      path.resolve(path.join("./test/", "gaming2.mp4")),
     ]);
   });
   it("should download only video because audio gets rejected and not merge them", async () => {
@@ -335,11 +335,10 @@ describe("downloadVideos", () => {
 
     const result = await downloadVideos(urls, "./test/");
 
-    expect(runFfmpegMock).not.toBeCalled();
     expect(axiosMock).toBeCalled();
     expect(result).toEqual([
-      path.join("./test/", "gaming1.mp4"),
-      path.join("./test/", "gaming2.mp4"),
+      path.resolve(path.join("./test/", "gaming1.mp4")),
+      path.resolve(path.join("./test/", "gaming2.mp4")),
     ]);
   });
 });

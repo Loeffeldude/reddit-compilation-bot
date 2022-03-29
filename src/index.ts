@@ -1,6 +1,7 @@
 import { Command } from "commander";
-import { handleError, makeRedditCompilation } from "./compilation-maker";
+import { makeRedditCompilation } from "./compilation-maker";
 import { configParseNumbers, Options } from "./options/config";
+import { logger } from "./util/logger";
 
 const program = new Command();
 program
@@ -25,6 +26,7 @@ program
     "minimum length of videos to include in seconds",
     "0"
   )
+  .option("--resolution <resolution>", "resolution of finally video")
   .option("--targetVideoLength <length>", "target length of videos in seconds")
   .option(
     "--maxLength <length>",
@@ -47,6 +49,15 @@ program
     }
   });
 
+program.exitOverride((error) => {
+  logger.error(error.message + "\n" + error.stack);
+  process.exit(1);
+});
+
 program.parse();
 
 export { makeRedditCompilation } from "./compilation-maker";
+
+export function handleError(error: Error) {
+  program.error(error.message);
+}

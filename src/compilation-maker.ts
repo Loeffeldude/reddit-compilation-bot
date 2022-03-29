@@ -1,17 +1,12 @@
-import { program } from "commander";
 import { setFfmpegPath } from "fluent-ffmpeg";
 import { rm } from "fs/promises";
 import Snoowrap from "snoowrap";
-import { saveMergedVideo } from "./cutter";
-import { loadConfig, extendOptions } from "./options/config";
+import { normalizeVideos, saveMergedVideo } from "./cutter";
+import { loadConfig, extendOptions, resolutions } from "./options/config";
 import { Config, Options } from "./options/config";
-import {
-  InvalidOptionsError,
-  FileNotFoundError,
-  InvalidConfigError,
-  FfmpegError,
-} from "./util/errors";
+import { InvalidOptionsError } from "./util/errors";
 import { logger } from "./util/logger";
+import { isReseloution } from "./util/util";
 import { getVideoLinks, downloadVideos } from "./video-downloader";
 
 export async function makeRedditCompilation(inputOptions: Options) {
@@ -48,7 +43,7 @@ export async function makeRedditCompilation(inputOptions: Options) {
 
   logger.debug("Getting Video links from subbreddits:");
   logger.debug(JSON.stringify(subreddits, null, 2));
-
+  logger.info("Getting Video links...");
   const links = await getVideoLinks(
     subreddits,
     options.targetVideoLength,
@@ -64,15 +59,30 @@ export async function makeRedditCompilation(inputOptions: Options) {
   try {
     logger.info("Downloading videos...");
     const videoPaths = await downloadVideos(links, options.tempDir);
+
+    logger.info("Encoding Videos...");
+    const normalVideoPaths = await normalizeVideos(
+      videoPaths,
+      getResolution(options.resolution),
+      "black"
+    );
     logger.info("Rendering output...");
-    await saveMergedVideo(videoPaths, options.output);
-  } catch (e) {
-    logger.error(e);
-    throw e;
+    await saveMergedVideo(normalVideoPaths, options.output);
+    logger.info("Done!");
   } finally {
     logger.info("Cleaning up");
     await rm(options.tempDir, { recursive: true, force: true });
   }
+}
+
+export function getResolution(resolution: string) {
+  const result =
+    resolution in resolutions ? resolutions[resolution] : resolution;
+
+  if (!isReseloution(result)) {
+    throw new InvalidOptionsError("Invalid resolution");
+  }
+  return result;
 }
 
 export function getSubreddits(
@@ -91,20 +101,4 @@ export function getSubreddits(
   if (!result) throw new InvalidOptionsError();
 
   return result;
-}
-
-export function handleError(error: Error) {
-  if (error instanceof FileNotFoundError) {
-    program.error(error.message);
-  }
-  if (error instanceof InvalidConfigError) {
-    program.error(error.message);
-  }
-  if (error instanceof InvalidOptionsError) {
-    program.error(error.message);
-  }
-  if (error instanceof FfmpegError) {
-    program.error(`${error.message} \n${error.data}`);
-  }
-  program.error(error.message);
 }
