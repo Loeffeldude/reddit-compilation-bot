@@ -1,7 +1,7 @@
 import chalk from "chalk";
 
 export const logger = {
-  logging: false,
+  logging: true,
   log(message: unknown) {
     console.log(chalk.white(message));
   },

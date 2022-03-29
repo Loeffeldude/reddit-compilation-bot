@@ -1,13 +1,92 @@
 import axios from "axios";
-import Ffmpeg, { FfmpegCommand } from "fluent-ffmpeg";
 import fsPromise from "fs/promises";
+import path from "path";
 import Snoowrap, { Submission } from "snoowrap";
 import * as util from "./util/util";
 import {
   areVideosLeft,
   downloadVideos,
   getVideoLinks,
+  getVideoTopVideoPosts,
 } from "./video-downloader";
+
+describe("getVideoTopVideoPosts", () => {
+  const gamingPosts = [
+    {
+      media: {
+        reddit_video: {
+          fallback_url:
+            "https://v.redd.it/gaming1/DASH_480.mp4?source=fallback",
+          duration: 10,
+        },
+      },
+      is_reddit_media_domain: true,
+      is_video: true,
+    },
+    {
+      media: {
+        reddit_video: {
+          fallback_url:
+            "https://v.redd.it/gaming2/DASH_480.mp4?source=fallback",
+          duration: 10,
+        },
+      },
+      is_reddit_media_domain: true,
+      is_video: true,
+    },
+  ];
+  const gamingcirclejerkPosts = [
+    {
+      media: {
+        reddit_video: {
+          fallback_url:
+            "https://v.redd.it/gamingcirclejerk1/DASH_480.mp4?source=fallback",
+          duration: 10,
+        },
+      },
+      is_reddit_media_domain: false,
+      is_video: false,
+    },
+    {
+      media: {
+        reddit_video: {
+          fallback_url:
+            "https://v.redd.it/gamingcirclejerk2/DASH_480.mp4?source=fallback",
+          duration: 10,
+        },
+      },
+      is_reddit_media_domain: true,
+      is_video: true,
+    },
+  ];
+
+  // mock the snoowrap client
+  const client = {
+    getSubreddit: jest.fn((subreddit: string) => ({
+      getTop: jest.fn(() => {
+        switch (subreddit) {
+          case "gaming":
+            return gamingPosts;
+          case "gamingcirclejerk":
+            return gamingcirclejerkPosts;
+          default:
+            return [];
+        }
+      }),
+    })),
+  };
+  it("should return the top posts of a subreddit if they are videos", async () => {
+    const topPosts = await getVideoTopVideoPosts("gaming", client as any);
+    expect(topPosts).toEqual(gamingPosts);
+  });
+  it("should return only the posts that a videos", async () => {
+    const topPosts = await getVideoTopVideoPosts(
+      "gamingcirclejerk",
+      client as any
+    );
+    expect(topPosts).toEqual([gamingcirclejerkPosts[1]]);
+  });
+});
 describe("areVideosLeft", () => {
   it("should return true if there are videos left", () => {
     const subreddits = ["gaming", "gamingcirclejerk"];
@@ -216,19 +295,23 @@ describe("downloadVideos", () => {
     ];
     const axiosMock = jest
       .spyOn(axios, "get")
-      .mockImplementation(async (url: string) =>
+      .mockImplementation(async () =>
         Promise.resolve({ data: Buffer.from("") })
       );
     fsPromise.writeFile = jest.fn(() => Promise.resolve());
     fsPromise.rm = jest.fn(() => Promise.resolve());
     fsPromise.rename = jest.fn(() => Promise.resolve());
-
-    const result = await downloadVideos(urls);
+    fsPromise.mkdir = jest.fn(() => Promise.resolve(undefined));
+    const result = await downloadVideos(urls, "./test/");
 
     expect(axiosMock).toBeCalled();
-    expect(result).toEqual(["./tmp/gaming1.mp4", "./tmp/gaming2.mp4"]);
+    // OS agnostic
+    expect(result).toEqual([
+      path.join("./test/", "gaming1.mp4"),
+      path.join("./test/", "gaming2.mp4"),
+    ]);
   });
-  it("should download only video because audio gets rejected and merge them", async () => {
+  it("should download only video because audio gets rejected and not merge them", async () => {
     const urls = [
       "https://v.redd.it/gaming1/DASH_480.mp4?source=fallback",
       "https://v.redd.it/gaming2/DASH_480.mp4?source=fallback",
@@ -244,15 +327,19 @@ describe("downloadVideos", () => {
     fsPromise.writeFile = jest.fn(() => Promise.resolve());
     fsPromise.rm = jest.fn(() => Promise.resolve());
     fsPromise.rename = jest.fn(() => Promise.resolve());
+    fsPromise.mkdir = jest.fn(() => Promise.resolve(undefined));
 
     const runFfmpegMock = jest
       .spyOn(util, "runPromisifiedFfmpeg")
       .mockImplementation(() => Promise.resolve());
 
-    const result = await downloadVideos(urls);
+    const result = await downloadVideos(urls, "./test/");
 
     expect(runFfmpegMock).not.toBeCalled();
     expect(axiosMock).toBeCalled();
-    expect(result).toEqual(["./tmp/gaming1.mp4", "./tmp/gaming2.mp4"]);
+    expect(result).toEqual([
+      path.join("./test/", "gaming1.mp4"),
+      path.join("./test/", "gaming2.mp4"),
+    ]);
   });
 });

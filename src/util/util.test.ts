@@ -1,4 +1,9 @@
-import { getAudioUrl, getVideoNameFromUrl, randomIndex } from "./util";
+import {
+  getAudioUrl,
+  getVideoNameFromUrl,
+  randomIndex,
+  isReseloution,
+} from "./util";
 describe("getAudioUrl", () => {
   test("should return right url for video", () => {
     expect(
@@ -44,5 +49,15 @@ describe("rrandomIndex", () => {
     jest.spyOn(global.Math, "random").mockReturnValue(0);
 
     expect(randomIndex(0)).toBe(-0);
+  });
+});
+//Tests for isReseloution
+describe("isReseloution", () => {
+  test("should return true if string is a resolution", () => {
+    expect(isReseloution("1920x1080")).toBe(true);
+  });
+
+  test("should return false if string is not a resolution", () => {
+    expect(isReseloution("test")).toBe(false);
   });
 });

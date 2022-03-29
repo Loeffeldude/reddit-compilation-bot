@@ -1,0 +1,19 @@
+{
+	"ffmpegPath": "C:\\Program Files\\ff\\bin\\ffmpeg.exe",
+  "output": "./output.mp4",
+  "subreddits": ["funny", "pics", "aww", "gifs"],
+  "categories": {
+		"funny": ["dankvideos", "memes"]
+	},
+  "category": "funny",
+  "minLength": 0,
+  "maxLength": 30,
+  "targetVideoLength": 300,
+  "hideUsed": true,
+  "includeHidden": false,
+  "tempDir": "./dsdsd/",
+  "redditClientId": "clientId",
+  "redditClientSecret": "clientSecret",
+  "redditUsername": "username",
+  "redditPassword": "password"
+}

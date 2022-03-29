@@ -1,7 +1,7 @@
 import axios from "axios";
-import Ffmpeg, { FfmpegCommand } from "fluent-ffmpeg";
-import { createWriteStream } from "fs";
-import { rename, rm, writeFile } from "fs/promises";
+import Ffmpeg from "fluent-ffmpeg";
+import { rename, rm, writeFile, mkdir } from "fs/promises";
+import path from "path";
 import Snoowrap, { Submission } from "snoowrap";
 import { Readable } from "stream";
 import { VideoNotFoundError } from "./util/errors";
@@ -73,26 +73,33 @@ export function areVideosLeft(
   return false;
 }
 
-async function getVideoTopVideoPosts(subreddit: string, client: Snoowrap) {
+export async function getVideoTopVideoPosts(
+  subreddit: string,
+  client: Snoowrap
+) {
   return (await client.getSubreddit(subreddit).getTop()).filter(
     (post) => post.is_video && post.is_reddit_media_domain
   );
 }
 
-export async function downloadVideos(urls: string[]) {
+export async function downloadVideos(urls: string[], tmpPath: string) {
   const promises: Promise<string>[] = [];
+
+  await mkdir(tmpPath, { recursive: true });
 
   for (const url of urls) {
     const promise = Promise.allSettled([
-      axios.get<Buffer>(url),
-      axios.get<Buffer>(getAudioUrl(url)),
+      axios.get<Buffer>(url, { responseType: "arraybuffer" }),
+      axios.get<Buffer>(getAudioUrl(url), { responseType: "arraybuffer" }),
     ]).then(async ([video, audio]) => {
       if (video.status == "rejected") {
-        throw new VideoNotFoundError();
+        throw new VideoNotFoundError(`The video at ${url} was not found`);
       }
       const fileName = getVideoNameFromUrl(url);
-      const tmpVideoPath = `./tmp/${fileName}_tmp.mp4`;
-      const videoPath = `./tmp/${fileName}.mp4`;
+      const tmpVideoPath = path.join(tmpPath, `${fileName}_tmp.mp4`);
+      const tmpAudioPath = path.join(tmpPath, `${fileName}_tmp_audio.mp4`);
+
+      const videoPath = path.join(tmpPath, `${fileName}.mp4`);
 
       await writeFile(tmpVideoPath, video.value.data);
 
@@ -100,19 +107,22 @@ export async function downloadVideos(urls: string[]) {
         await rename(tmpVideoPath, videoPath);
         return videoPath;
       }
-      const audioStream = Readable.from(audio.value.data.toString());
+
+      await writeFile(tmpAudioPath, audio.value.data);
 
       await runPromisifiedFfmpeg(
         Ffmpeg()
           .input(tmpVideoPath)
-          .addInput(audioStream)
-          .map("0:v")
-          .map("1:a")
-          .addOption("-c:v", "copy", "--shortest")
-          .format("mp4")
+          .addInput(tmpAudioPath)
+          .addOption("-map", "0:v")
+          .addOption("-map", "1:a?")
+          .addOption("-c:v", "copy")
+          .addOption("-shortest")
           .output(videoPath)
       );
+
       await rm(tmpVideoPath);
+
       return videoPath;
     });
     promises.push(promise);

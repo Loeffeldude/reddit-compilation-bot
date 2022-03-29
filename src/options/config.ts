@@ -1,8 +1,26 @@
 import path from "path";
 import { open } from "fs/promises";
-import { Config, Options } from "../types/config";
 import { FileNotFoundError, InvalidConfigError } from "../util/errors";
-import { validateOrReject } from "class-validator";
+
+export interface Config {
+  ffmpegPath: string;
+  output: string;
+  subreddits?: string[];
+  categories?: Record<string, string[]>;
+  category?: string;
+  minLength: number;
+  maxLength: number;
+  targetVideoLength: number;
+  hideUsed: boolean;
+  includeHidden: boolean;
+  tempDir: string;
+  redditClientId: string;
+  redditClientSecret: string;
+  redditUsername: string;
+  redditPassword: string;
+  verbose: boolean;
+}
+export type Options = Omit<Config, "categories"> & { input?: string };
 
 export async function loadConfig(configPath: string) {
   try {
@@ -25,14 +43,10 @@ export async function loadConfig(configPath: string) {
 export function extendOptions(config: Config, options: Options): Config {
   return { ...config, ...options };
 }
-// Check if a field of config is set if it is of the correct type
-export async function validate(config: Config): Promise<boolean> {
-  try {
-    await validateOrReject(config);
-    return true;
-  } catch (e) {
-    return false;
-  }
+
+export function validate(config: Config): boolean {
+  // TODO: implement
+  return true;
 }
 
 export function configParseNumbers(config: Options) {

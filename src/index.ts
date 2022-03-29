@@ -1,12 +1,12 @@
 import { Command } from "commander";
-import { Options } from "./types/config";
 import { handleError, makeRedditCompilation } from "./compilation-maker";
-import { configParseNumbers } from "./options/config";
+import { configParseNumbers, Options } from "./options/config";
 
 const program = new Command();
 program
   .requiredOption("-o,--output <path>", "required: path to store video")
   .option("-i,--input <path>", "path to config file")
+  .option("-ffmpeg-path <path>", "path to ffmpeg executable")
   .option(
     "-r,--subreddits <subreddits...>",
     "subreddits to get videos from. If set will ignore categories and subreddits in config"
@@ -37,6 +37,7 @@ program
     false
   )
   .option("--includeHidden", "include hidden files in search for videos", false)
+  .option("--verbose", "verbose logging", true)
   .action((options: Options) => {
     try {
       makeRedditCompilation(configParseNumbers(options));

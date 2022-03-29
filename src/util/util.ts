@@ -20,7 +20,7 @@ export async function runPromisifiedFfmpeg(command: FfmpegCommand) {
         resolve();
       })
       .on("error", (err: unknown) => {
-        reject(new FfmpegError("A ffmpeg command failed", err));
+        reject(new FfmpegError(`A Ffmpeg command failed \n ${err}`, err));
       })
       .run();
   });
