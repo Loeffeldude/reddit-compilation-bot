@@ -3,7 +3,8 @@ import { open } from "fs/promises";
 import { FileNotFoundError, InvalidConfigError } from "../util/errors";
 import { JSONSchemaType } from "ajv";
 import Ajv from "ajv";
-import { defaultOptions } from "../constants";
+import { defaultOptions } from "../util/constants";
+import { mergeWith } from "lodash";
 
 export type NonUndefined<T> = { [P in keyof T]-?: T[P] };
 // It being a class insures keys are always given
@@ -24,7 +25,7 @@ export class Config {
   redditClientSecret!: string;
   redditUsername!: string;
   redditPassword!: string;
-  verbose!: boolean;
+  logging!: boolean;
   debug!: boolean;
 }
 
@@ -51,7 +52,7 @@ export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
     redditClientSecret: { type: "string" },
     redditUsername: { type: "string" },
     redditPassword: { type: "string" },
-    verbose: { type: "boolean" },
+    logging: { type: "boolean" },
     debug: { type: "boolean" },
   },
   required: [],
@@ -59,14 +60,6 @@ export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
 };
 
 export type Options = Omit<Config, "categories"> & { input?: string };
-
-export const resolutions: Record<string, string> = {
-  "1080p": "1920x1080",
-  "720p": "1280x720",
-  "480p": "854x480",
-  "360p": "640x360",
-  "240p": "426x240",
-};
 
 export async function loadConfig(configPath: string) {
   try {
@@ -97,8 +90,36 @@ export async function loadConfig(configPath: string) {
   }
 }
 
-export function extendOptions(config: Config, options: Options): Config {
-  return { ...defaultOptions, ...config, ...options };
+export function validateOptions(options: Options) {
+  const undefinedKeys = ["categories", "category", "subreddits"];
+  const missingKeys: string[] = [];
+
+  for (const key of Object.keys(configSchema.properties)) {
+    if (
+      !(key in options) ||
+      (options as Record<string, unknown>)[key] === undefined
+    ) {
+      if (undefinedKeys.includes(key)) {
+        continue;
+      }
+      missingKeys.push(key);
+    }
+  }
+  return { valid: missingKeys.length === 0, missingKeys };
+}
+
+export function extendOptions(options: Options, config?: Config): Config {
+  return mergeWith(
+    options,
+    config,
+    defaultOptions,
+    (value: unknown, src: unknown) => {
+      if (value === undefined) {
+        return src;
+      }
+      return value;
+    }
+  ) as Config;
 }
 
 export function configParseNumbers(config: Options) {

@@ -12,6 +12,7 @@ import {
 } from "./util/util";
 import { queue } from "async";
 import { FfmpegEventCallbacks } from "./types/ffmpeg";
+import { ConcurrentFfmpegProcesses } from "./util/constants";
 
 // TODO: Turn into generator
 export async function getVideoLinks(
@@ -29,6 +30,7 @@ export async function getVideoLinks(
   while (videoLength < targetVideoLength) {
     const i = randomIndex(leftSubreddits.length);
     const subreddit = leftSubreddits[i];
+    logger.debug(`Getting top posts from ${subreddit}`);
 
     if (!(subreddit in topPosts)) {
       topPosts[subreddit] = await getVideoTopVideoPosts(subreddit, client);
@@ -57,6 +59,8 @@ export async function getVideoLinks(
     ) {
       if (hideUsed) submission.hide();
       links.push(redditVideo.fallback_url);
+
+      logger.debug("Added video with length: " + redditVideo.duration);
       videoLength += redditVideo.duration;
     }
   }
@@ -78,13 +82,35 @@ export async function getVideoTopVideoPosts(
   subreddit: string,
   client: Snoowrap
 ) {
-  return (
-    await client
-      .getSubreddit(subreddit)
-      .getTop({ time: "week", limit: 500, show: undefined })
-  ).filter(
-    (post) => post.is_video && post.is_reddit_media_domain && !post.hidden
-  );
+  const allPosts = await client
+    .getSubreddit(subreddit)
+    .getTop({ time: "week", limit: 500, show: undefined });
+  const result: Snoowrap.Submission[] = [];
+  const promises = allPosts.map(async (post) => {
+    if (post.is_video && post.is_reddit_media_domain && !post.hidden) {
+      const redditVideo = post.media?.reddit_video;
+      if (!redditVideo) return;
+      // TODO: add option to filter out videos that have no audio
+      try {
+        const headers = await axios.head(getAudioUrl(redditVideo.fallback_url));
+        if (headers.headers["content-type"] === "video/mp4") {
+          result.push(post);
+        }
+      } catch (e) {
+        if (axios.isAxiosError(e)) {
+          if (e.response?.status === 403) {
+            return;
+          }
+          if (e.response?.status === 404) {
+            return;
+          }
+        }
+        throw e;
+      }
+    }
+  });
+  await Promise.all(promises);
+  return result;
 }
 
 export async function downloadVideos(
@@ -104,7 +130,7 @@ export async function downloadVideos(
     } catch (e: any) {
       callback(e);
     }
-  }, 3);
+  }, ConcurrentFfmpegProcesses);
 
   q.push(urls);
   await q.drain();

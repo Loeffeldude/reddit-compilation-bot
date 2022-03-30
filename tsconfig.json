@@ -4,6 +4,7 @@
     "outDir": "./dist",
     "target": "ES6",
     "module": "commonjs",
+    "declaration": true,
     "lib": ["ES6"],
 		"strict": true,
     "esModuleInterop": true,

@@ -2,6 +2,7 @@ import Ffmpeg from "fluent-ffmpeg";
 import { runPromisifiedFfmpeg } from "./util/util";
 import { queue } from "async";
 import { FfmpegEventCallbacks } from "./types/ffmpeg";
+import { ConcurrentFfmpegProcesses } from "./util/constants";
 export async function saveMergedVideo(
   videoPaths: string[],
   resultPath: string,
@@ -55,7 +56,7 @@ export async function normalizeVideos(
     } catch (e: any) {
       callback(e);
     }
-  }, 3);
+  }, ConcurrentFfmpegProcesses);
 
   q.push(videoPaths);
 

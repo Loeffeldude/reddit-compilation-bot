@@ -2,13 +2,9 @@ import { Presets, SingleBar } from "cli-progress";
 import { setFfmpegPath } from "fluent-ffmpeg";
 import { rm } from "fs/promises";
 import Snoowrap from "snoowrap";
+import { resolutions } from "./util/constants";
 import { normalizeVideos, saveMergedVideo } from "./cutter";
-import {
-  loadConfig,
-  extendOptions,
-  resolutions,
-  configSchema,
-} from "./options/config";
+import { loadConfig, extendOptions, validateOptions } from "./options/config";
 import { Config, Options } from "./options/config";
 import { InvalidOptionsError } from "./util/errors";
 import { logger } from "./util/logger";
@@ -17,11 +13,12 @@ import { getVideoLinks, downloadVideos } from "./video-downloader";
 
 export async function makeRedditCompilation(inputOptions: Options) {
   let options: Config & Options = inputOptions;
+  let config: undefined | Config = undefined;
 
-  if (options.input) {
-    const inputConfig = await loadConfig(options.input);
-    options = extendOptions(inputConfig, inputOptions);
-  }
+  if (options.input) config = await loadConfig(options.input);
+
+  options = extendOptions(inputOptions, config);
+
   const validResult = validateOptions(options);
   if (!validResult.valid)
     throw new InvalidOptionsError(
@@ -29,7 +26,7 @@ export async function makeRedditCompilation(inputOptions: Options) {
         validResult.missingKeys.join("\n")
     );
 
-  logger.logging = !!options.verbose;
+  logger.logging = !!options.logging;
   logger.debugLogging = !!options.debug;
 
   const startTime = new Date();
@@ -122,24 +119,6 @@ export async function makeRedditCompilation(inputOptions: Options) {
     logger.info("Cleaning up");
     await rm(options.tempDir, { recursive: true, force: true });
   }
-}
-
-export function validateOptions(options: Options) {
-  const undefinedKeys = ["categories", "category", "subreddits"];
-  const missingKeys: string[] = [];
-
-  for (const key of Object.keys(configSchema.properties)) {
-    if (
-      !(key in options) ||
-      (options as Record<string, unknown>)[key] === undefined
-    ) {
-      if (undefinedKeys.includes(key)) {
-        continue;
-      }
-      missingKeys.push(key);
-    }
-  }
-  return { valid: missingKeys.length === 0, missingKeys };
 }
 
 export function getResolution(resolution: string) {

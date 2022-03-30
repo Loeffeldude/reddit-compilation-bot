@@ -7,10 +7,10 @@ export const logger = {
     console.log(chalk.white(message));
   },
   info(message: unknown) {
-    if (this.logging) logMessage(message, chalk.blue("INFO:"));
+    if (this.logging) logMessage(message, chalk.blue("INFO: "));
   },
   warning(message: unknown) {
-    if (this.logging) logMessage(message, chalk.green("WARN:"));
+    if (this.logging) logMessage(message, chalk.green("WARN: "));
   },
   error(message: unknown) {
     if (this.logging) logMessage(message, chalk.red("ERROR:"));
@@ -21,7 +21,5 @@ export const logger = {
   },
 };
 function logMessage(message: unknown, prefix: string) {
-  console.log(
-    `${prefix}\t ${String(message).split("\n").join(`\n${prefix}\t `)}`
-  );
+  console.log(`${prefix} ${String(message).split("\n").join(`\n${prefix} `)}`);
 }

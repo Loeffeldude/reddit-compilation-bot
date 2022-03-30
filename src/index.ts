@@ -6,6 +6,7 @@ import { logger } from "./util/logger";
 
 const program = new Command();
 program
+  .name("reddit-video-maker")
   .option("-o,--output <path>", "required: path to store video")
   .option("-i,--input <path>", "required: path to config file")
   .option("-ffmpeg-path <path>", "required: path to ffmpeg executable")
@@ -44,7 +45,7 @@ program
     "required: include hidden files in search for videos",
     undefined
   )
-  .option("--verbose", "verbose logging", undefined)
+  .option("--logging", "enable logging", undefined)
   .option("--debug", "debug logging", undefined)
   .action(async (options: Options) => {
     try {
@@ -59,7 +60,7 @@ program.parse();
 
 export { makeRedditCompilation } from "./compilation-maker";
 
-export function handleError(error: Error) {
+function handleError(error: Error) {
   if (error instanceof InvalidOptionsError) {
     program.showHelpAfterError();
   }

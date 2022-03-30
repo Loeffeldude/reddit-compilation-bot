@@ -9,7 +9,7 @@ import {
   getVideoLinks,
   getVideoTopVideoPosts,
 } from "../src/video-downloader";
-
+//TODO: update tests
 describe("getVideoTopVideoPosts", () => {
   const gamingPosts = [
     {
@@ -60,8 +60,7 @@ describe("getVideoTopVideoPosts", () => {
     },
   ];
 
-  // mock the snoowrap client
-  const client = {
+  let client = {
     getSubreddit: jest.fn((subreddit: string) => ({
       getTop: jest.fn(() => {
         switch (subreddit) {
@@ -75,11 +74,51 @@ describe("getVideoTopVideoPosts", () => {
       }),
     })),
   };
+
+  beforeEach(() => {
+    client = {
+      getSubreddit: jest.fn((subreddit: string) => ({
+        getTop: jest.fn(() => {
+          switch (subreddit) {
+            case "gaming":
+              return gamingPosts;
+            case "gamingcirclejerk":
+              return gamingcirclejerkPosts;
+            default:
+              return [];
+          }
+        }),
+      })),
+    };
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
   it("should return the top posts of a subreddit if they are videos", async () => {
+    jest.spyOn(axios, "head").mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+        headers: {
+          "content-type": "video/mp4",
+        },
+      });
+    });
+
     const topPosts = await getVideoTopVideoPosts("gaming", client as any);
     expect(topPosts).toEqual(gamingPosts);
   });
   it("should return only the posts that a videos", async () => {
+    jest.spyOn(axios, "head").mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+        headers: {
+          "content-type": "video/mp4",
+        },
+      });
+    });
+
     const topPosts = await getVideoTopVideoPosts(
       "gamingcirclejerk",
       client as any
@@ -176,7 +215,7 @@ describe("getVideoLinks", () => {
   ];
 
   // mock the snoowrap client
-  const client = {
+  let client = {
     getSubreddit: jest.fn((subreddit: string) => ({
       getTop: jest.fn(() => {
         switch (subreddit) {
@@ -190,10 +229,24 @@ describe("getVideoLinks", () => {
       }),
     })),
   };
-  beforeAll(() => {
+  beforeEach(() => {
     jest.spyOn(util, "randomIndex").mockReturnValue(0);
+    client = {
+      getSubreddit: jest.fn((subreddit: string) => ({
+        getTop: jest.fn(() => {
+          switch (subreddit) {
+            case "gaming":
+              return gamingPosts;
+            case "gamingcirclejerk":
+              return gamingcirclejerkPosts;
+            default:
+              return [];
+          }
+        }),
+      })),
+    };
   });
-  afterAll(() => {
+  afterEach(() => {
     jest.restoreAllMocks();
   });
   it("should return all links because of order of random index", async () => {
@@ -202,6 +255,15 @@ describe("getVideoLinks", () => {
     const maxLength = 20;
     const minLength = 5;
     const hideUsed = false;
+
+    jest.spyOn(axios, "head").mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+        headers: {
+          "content-type": "video/mp4",
+        },
+      });
+    });
 
     const result = await getVideoLinks(
       subreddits,
@@ -224,6 +286,15 @@ describe("getVideoLinks", () => {
     const minLength = 5;
     const hideUsed = false;
 
+    jest.spyOn(axios, "head").mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+        headers: {
+          "content-type": "video/mp4",
+        },
+      });
+    });
+
     const result = await getVideoLinks(
       subreddits,
       targetVideoLength,
@@ -244,6 +315,15 @@ describe("getVideoLinks", () => {
     const minLength = 0;
     const hideUsed = false;
 
+    jest.spyOn(axios, "head").mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+        headers: {
+          "content-type": "video/mp4",
+        },
+      });
+    });
+
     const result = await getVideoLinks(
       subreddits,
       targetVideoLength,
@@ -260,6 +340,15 @@ describe("getVideoLinks", () => {
     const maxLength = 30;
     const minLength = 5;
     const hideUsed = false;
+
+    jest.spyOn(axios, "head").mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+        headers: {
+          "content-type": "video/mp4",
+        },
+      });
+    });
 
     const result = await getVideoLinks(
       subreddits,
