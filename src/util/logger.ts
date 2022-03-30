@@ -7,16 +7,21 @@ export const logger = {
     console.log(chalk.white(message));
   },
   info(message: unknown) {
-    if (this.logging) console.log(chalk.white("INFO:") + ` ${message}`);
+    if (this.logging) logMessage(message, chalk.blue("INFO:"));
   },
   warning(message: unknown) {
-    if (this.logging) console.error(chalk.yellow("WARN:") + ` ${message}`);
+    if (this.logging) logMessage(message, chalk.green("WARN:"));
   },
   error(message: unknown) {
-    if (this.logging) console.error(chalk.red("ERROR:") + ` ${message}`);
+    if (this.logging) logMessage(message, chalk.red("ERROR:"));
   },
   debug(message: unknown) {
     if (this.logging && this.debugLogging)
-      console.error(chalk.green("DEBUG:") + ` ${message}`);
+      logMessage(message, chalk.green("DEBUG:"));
   },
 };
+function logMessage(message: unknown, prefix: string) {
+  console.log(
+    `${prefix}\t ${String(message).split("\n").join(`\n${prefix}\t `)}`
+  );
+}

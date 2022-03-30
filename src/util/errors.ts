@@ -2,11 +2,12 @@ export class InvalidConfigError extends Error {}
 export class FileNotFoundError extends Error {}
 export class InvalidOptionsError extends Error {}
 export class FfmpegError extends Error {
-  data: unknown;
-
-  constructor(message: string | undefined, data: unknown) {
+  stderr: unknown;
+  stdout: unknown;
+  constructor(message: string | undefined, stderr: string, stdout: string) {
     super(message);
-    this.data = data;
+    this.stderr = stderr;
+    this.stdout = stdout;
   }
 }
 export class VideoNotFoundError extends Error {}

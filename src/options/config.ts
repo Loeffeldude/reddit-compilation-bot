@@ -3,27 +3,29 @@ import { open } from "fs/promises";
 import { FileNotFoundError, InvalidConfigError } from "../util/errors";
 import { JSONSchemaType } from "ajv";
 import Ajv from "ajv";
+import { defaultOptions } from "../constants";
 
 export type NonUndefined<T> = { [P in keyof T]-?: T[P] };
-
-export interface Config {
-  ffmpegPath: string;
-  output: string;
+// It being a class insures keys are always given
+export class Config {
+  ffmpegPath!: string;
+  output!: string;
   subreddits?: string[];
   categories?: Record<string, string[]>;
   category?: string;
-  minLength: number;
-  maxLength: number;
-  targetVideoLength: number;
-  resolution: string;
-  hideUsed: boolean;
-  includeHidden: boolean;
-  tempDir: string;
-  redditClientId: string;
-  redditClientSecret: string;
-  redditUsername: string;
-  redditPassword: string;
-  verbose: boolean;
+  minLength!: number;
+  maxLength!: number;
+  targetVideoLength!: number;
+  resolution!: string;
+  hideUsed!: boolean;
+  includeHidden!: boolean;
+  tempDir!: string;
+  redditClientId!: string;
+  redditClientSecret!: string;
+  redditUsername!: string;
+  redditPassword!: string;
+  verbose!: boolean;
+  debug!: boolean;
 }
 
 export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
@@ -50,6 +52,7 @@ export const configSchema: JSONSchemaType<NonUndefined<Config>> = {
     redditUsername: { type: "string" },
     redditPassword: { type: "string" },
     verbose: { type: "boolean" },
+    debug: { type: "boolean" },
   },
   required: [],
   additionalProperties: false,
@@ -95,7 +98,7 @@ export async function loadConfig(configPath: string) {
 }
 
 export function extendOptions(config: Config, options: Options): Config {
-  return { ...config, ...options };
+  return { ...defaultOptions, ...config, ...options };
 }
 
 export function configParseNumbers(config: Options) {

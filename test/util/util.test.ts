@@ -27,14 +27,14 @@ describe("rrandomIndex", () => {
     jest.spyOn(global.Math, "random").mockRestore();
   });
 
-  test("should return a random index of the function", () => {
+  test("should return a random index", () => {
     jest.spyOn(global.Math, "random").mockReturnValue(0.425);
 
     expect(randomIndex(5)).toBe(2);
   });
 
   test("should return the last index for the given length", () => {
-    jest.spyOn(global.Math, "random").mockReturnValue(1);
+    jest.spyOn(global.Math, "random").mockReturnValue(0.9);
 
     expect(randomIndex(5)).toBe(4);
   });

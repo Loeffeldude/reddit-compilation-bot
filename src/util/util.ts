@@ -1,4 +1,5 @@
 import { FfmpegCommand } from "fluent-ffmpeg";
+import { FfmpegEventCallbacks, ProgressEventData } from "../types/ffmpeg";
 import { FfmpegError } from "./errors";
 import { logger } from "./logger";
 
@@ -18,24 +19,27 @@ export async function runPromisifiedFfmpeg(
   command: FfmpegCommand,
   options?: {
     ffmpegRunFunction?: (command: FfmpegCommand) => void;
-    onProgress?: (progress: number) => void;
-  }
+  } & FfmpegEventCallbacks
 ) {
   return new Promise<void>((resolve, reject) => {
     command
       .on("end", () => {
+        if (options?.onComplete) options.onComplete();
         resolve();
       })
-      .on("error", (err: unknown, stdout: string, stderr: string) => {
+      .on("error", (err: string, stdout: string, stderr: string) => {
         logger.debug("stdout:");
         logger.debug(stdout);
         logger.debug("stderr:");
         logger.debug(stderr);
-        reject(new FfmpegError(`A Ffmpeg command failed \n ${err}`, err));
+        if (options?.onError) options.onError(err, stdout, stderr);
+        reject(
+          new FfmpegError(`A Ffmpeg command failed \n ${err}`, stdout, stderr)
+        );
       })
-      .on("progress", (progress: { percentage: number }) => {
+      .on("progress", (progress: ProgressEventData) => {
         if (options?.onProgress) {
-          options.onProgress(progress.percentage);
+          options.onProgress(progress);
         }
       });
     if (options?.ffmpegRunFunction) {

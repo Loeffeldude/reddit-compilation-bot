@@ -1,10 +1,8 @@
 import axios from "axios";
-import { Command } from "commander";
 import Ffmpeg from "fluent-ffmpeg";
-import { rename, rm, writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import Snoowrap, { Submission } from "snoowrap";
-import { VideoNotFoundError } from "./util/errors";
 import { logger } from "./util/logger";
 import {
   getAudioUrl,
@@ -12,7 +10,10 @@ import {
   randomIndex,
   runPromisifiedFfmpeg,
 } from "./util/util";
-import { Presets, SingleBar } from "cli-progress";
+import { queue } from "async";
+import { FfmpegEventCallbacks } from "./types/ffmpeg";
+
+// TODO: Turn into generator
 export async function getVideoLinks(
   subreddits: string[],
   targetVideoLength: number,
@@ -78,82 +79,82 @@ export async function getVideoTopVideoPosts(
   client: Snoowrap
 ) {
   return (
-    await client.getSubreddit(subreddit).getTop({ time: "week", limit: 500 })
-  ).filter((post) => post.is_video && post.is_reddit_media_domain);
+    await client
+      .getSubreddit(subreddit)
+      .getTop({ time: "week", limit: 500, show: undefined })
+  ).filter(
+    (post) => post.is_video && post.is_reddit_media_domain && !post.hidden
+  );
 }
 
-export async function downloadVideos(urls: string[], tmpPath: string) {
-  const promises: Promise<string>[] = [];
+export async function downloadVideos(
+  urls: string[],
+  tmpPath: string,
+  ffmpegEvents?: FfmpegEventCallbacks
+) {
+  const result: string[] = [];
 
   await mkdir(tmpPath, { recursive: true });
 
-  const bar = new SingleBar({}, Presets.legacy);
+  const q = queue(async (url: string, callback) => {
+    try {
+      const downloaded = await downloadVideo(url, tmpPath, ffmpegEvents);
+      if (downloaded) result.push(downloaded);
+      callback();
+    } catch (e: any) {
+      callback(e);
+    }
+  }, 3);
 
-  bar.start(urls.length, 0);
+  q.push(urls);
+  await q.drain();
+  return result;
+}
 
-  for (const url of urls) {
-    const promise = Promise.allSettled([
-      axios.get<Buffer>(url, { responseType: "arraybuffer" }),
-      axios.get<Buffer>(getAudioUrl(url), { responseType: "arraybuffer" }),
-    ]).then(async ([video, audio]) => {
-      if (video.status == "rejected") {
-        return Promise.reject(new VideoNotFoundError(url));
-        //throw new VideoNotFoundError(`The video at ${url} was not found`);
-      }
-      const fileName = getVideoNameFromUrl(url);
-      const tmpVideoPath = path.resolve(
-        path.join(tmpPath, `${fileName}_tmp.mp4`)
-      );
-      const tmpAudioPath = path.resolve(
-        path.join(tmpPath, `${fileName}_tmp_audio.mp4`)
-      );
+export async function downloadVideo(
+  url: string,
+  tmpPath: string,
+  ffmpegEvents?: FfmpegEventCallbacks
+) {
+  const [video, audio] = await Promise.allSettled([
+    axios.get<Buffer>(url, { responseType: "arraybuffer" }),
+    axios.get<Buffer>(getAudioUrl(url), { responseType: "arraybuffer" }),
+  ]);
 
-      const videoPath = path.resolve(path.join(tmpPath, `${fileName}.mp4`));
-
-      await writeFile(tmpVideoPath, video.value.data);
-      if (audio.status === "fulfilled")
-        await writeFile(tmpAudioPath, audio.value.data);
-
-      const command = Ffmpeg().input(tmpVideoPath);
-
-      if (audio.status === "fulfilled") {
-        command.addInput(tmpAudioPath);
-      } else {
-        command.addInput("anullsrc=n=1").inputOption("-f", "lavfi");
-      }
-
-      command
-        .addOption("-map", "0:v")
-        .addOption("-map", "1:a?")
-        .addOption("-c:v", "copy")
-        .addOption("-shortest")
-        .output(videoPath);
-
-      await runPromisifiedFfmpeg(command);
-
-      await rm(tmpVideoPath);
-      if (audio.status === "fulfilled") await rm(tmpAudioPath);
-
-      bar.increment();
-
-      return videoPath;
-    });
-    promises.push(promise);
+  if (video.status == "rejected") {
+    logger.warning(`Video not found for url: ${url}`);
+    return;
+    //throw new VideoNotFoundError(`The video at ${url} was not found`);
   }
-  const result = await Promise.allSettled(promises);
+  const fileName = getVideoNameFromUrl(url);
 
-  bar.stop();
+  const tmpVideoPath = path.resolve(path.join(tmpPath, `${fileName}_tmp.mp4`));
+  const tmpAudioPath = path.resolve(
+    path.join(tmpPath, `${fileName}_tmp_audio.mp4`)
+  );
 
-  result.forEach((item) => {
-    if (item.status === "rejected") {
-      logger.error(item.reason.message);
-    }
-  });
+  const videoPath = path.resolve(path.join(tmpPath, `${fileName}.mp4`));
 
-  return result.reduce<string[]>((acc, item) => {
-    if (item.status === "fulfilled") {
-      acc.push(item.value);
-    }
-    return acc;
-  }, []);
+  await writeFile(tmpVideoPath, video.value.data);
+  if (audio.status === "fulfilled")
+    await writeFile(tmpAudioPath, audio.value.data);
+
+  const command = Ffmpeg().input(tmpVideoPath);
+
+  if (audio.status === "fulfilled") {
+    command.addInput(tmpAudioPath);
+  } else {
+    command.addInput("anullsrc=n=1").inputOption("-f", "lavfi");
+  }
+
+  command
+    .addOption("-map", "0:v")
+    .addOption("-map", "1:a?")
+    .addOption("-c:v", "copy")
+    .addOption("-shortest")
+    .output(videoPath);
+  await runPromisifiedFfmpeg(command, ffmpegEvents);
+  // await rm(tmpVideoPath);
+  // if (audio.status === "fulfilled") await rm(tmpAudioPath);
+  return videoPath;
 }
