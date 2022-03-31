@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { makeRedditCompilation } from "./compilation-maker";
-import { configParseNumbers, Options } from "./options/config";
+import { makeRedditCompilation } from "./video/compilation-maker";
+import { configParseNumbers, Options } from "./config";
 import { InvalidOptionsError } from "./util/errors";
 import { logger } from "./util/logger";
 
@@ -58,7 +58,7 @@ program
 
 program.parse();
 
-export { makeRedditCompilation } from "./compilation-maker";
+export { makeRedditCompilation } from "./video/compilation-maker";
 
 function handleError(error: Error) {
   if (error instanceof InvalidOptionsError) {

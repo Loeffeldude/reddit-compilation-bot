@@ -1,12 +1,12 @@
 import path from "path";
 import { open } from "fs/promises";
-import { FileNotFoundError, InvalidConfigError } from "../util/errors";
+import { FileNotFoundError, InvalidConfigError } from "./util/errors";
 import { JSONSchemaType } from "ajv";
 import Ajv from "ajv";
-import { defaultOptions } from "../util/constants";
+import { defaultOptions } from "./util/constants";
 import { mergeWith } from "lodash";
+import { NonUndefined } from "./types";
 
-export type NonUndefined<T> = { [P in keyof T]-?: T[P] };
 // It being a class insures keys are always given
 export class Config {
   ffmpegPath!: string;

@@ -1,8 +1,9 @@
 import Ffmpeg from "fluent-ffmpeg";
-import { runPromisifiedFfmpeg } from "./util/util";
+import { runPromisifiedFfmpeg } from "../util/util";
 import { queue } from "async";
-import { FfmpegEventCallbacks } from "./types/ffmpeg";
-import { ConcurrentFfmpegProcesses } from "./util/constants";
+import { FfmpegEventCallbacks } from "../types/ffmpeg";
+import { ConcurrentFfmpegProcesses } from "../util/constants";
+
 export async function saveMergedVideo(
   videoPaths: string[],
   resultPath: string,
@@ -31,6 +32,7 @@ export async function saveMergedVideo(
 export function getMergeFilterSegment(index: number) {
   return `[${index}:v] [${index}:a] `;
 }
+
 export async function normalizeVideos(
   videoPaths: string[],
   resolution: string,

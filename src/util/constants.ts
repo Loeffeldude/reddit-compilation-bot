@@ -1,4 +1,4 @@
-import { Options } from "../options/config";
+import { Options } from "../config";
 
 //TODO: move to options
 export const ConcurrentFfmpegProcesses = 3;

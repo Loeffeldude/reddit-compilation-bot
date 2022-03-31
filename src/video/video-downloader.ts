@@ -3,16 +3,16 @@ import Ffmpeg from "fluent-ffmpeg";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import Snoowrap, { Submission } from "snoowrap";
-import { logger } from "./util/logger";
+import { logger } from "../util/logger";
 import {
   getAudioUrl,
   getVideoNameFromUrl,
   randomIndex,
   runPromisifiedFfmpeg,
-} from "./util/util";
+} from "../util/util";
 import { queue } from "async";
-import { FfmpegEventCallbacks } from "./types/ffmpeg";
-import { ConcurrentFfmpegProcesses } from "./util/constants";
+import { FfmpegEventCallbacks } from "../types/ffmpeg";
+import { ConcurrentFfmpegProcesses } from "../util/constants";
 
 // TODO: Turn into generator
 export async function getVideoLinks(

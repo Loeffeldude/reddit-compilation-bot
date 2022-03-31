@@ -1,4 +1,4 @@
-import { getSubreddits } from "../src/compilation-maker";
+import { getSubreddits } from "../../src/video/compilation-maker";
 
 describe("getSubreddits", () => {
   it("should return the correct subreddits for the category", () => {

@@ -2,13 +2,13 @@ import axios from "axios";
 import fsPromise from "fs/promises";
 import path from "path";
 import Snoowrap, { Submission } from "snoowrap";
-import * as util from "../src/util/util";
+import * as util from "../../src/util/util";
 import {
   areVideosLeft,
   downloadVideos,
   getVideoLinks,
   getVideoTopVideoPosts,
-} from "../src/video-downloader";
+} from "../../src/video/video-downloader";
 //TODO: update tests
 describe("getVideoTopVideoPosts", () => {
   const gamingPosts = [
@@ -368,7 +368,7 @@ describe("getVideoLinks", () => {
 });
 describe("downloadVideos", () => {
   beforeEach(() => {
-    jest.mock("../src/util/util");
+    jest.mock("../../src/util/util");
     jest.mock("fs/promises");
     jest
       .spyOn(util, "runPromisifiedFfmpeg")

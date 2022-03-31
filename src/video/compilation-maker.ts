@@ -2,13 +2,13 @@ import { Presets, SingleBar } from "cli-progress";
 import { setFfmpegPath } from "fluent-ffmpeg";
 import { rm } from "fs/promises";
 import Snoowrap from "snoowrap";
-import { resolutions } from "./util/constants";
+import { resolutions } from "../util/constants";
 import { normalizeVideos, saveMergedVideo } from "./cutter";
-import { loadConfig, extendOptions, validateOptions } from "./options/config";
-import { Config, Options } from "./options/config";
-import { InvalidOptionsError } from "./util/errors";
-import { logger } from "./util/logger";
-import { isReseloution } from "./util/util";
+import { loadConfig, extendOptions, validateOptions } from "../config";
+import { Config, Options } from "../config";
+import { InvalidOptionsError } from "../util/errors";
+import { logger } from "../util/logger";
+import { isReseloution } from "../util/util";
 import { getVideoLinks, downloadVideos } from "./video-downloader";
 
 export async function makeRedditCompilation(inputOptions: Options) {
@@ -29,13 +29,12 @@ export async function makeRedditCompilation(inputOptions: Options) {
   logger.logging = !!options.logging;
   logger.debugLogging = !!options.debug;
 
-  const startTime = new Date();
-  logger.info("Starting compilation");
+  logger.debug("Setting ffmpeg path to " + options.ffmpegPath);
+  setFfmpegPath(options.ffmpegPath);
 
-  if (options.ffmpegPath) {
-    logger.debug("Setting ffmpeg path to " + options.ffmpegPath);
-    setFfmpegPath(options.ffmpegPath);
-  }
+  const startTime = new Date();
+
+  logger.info("Starting compilation");
 
   logger.debug("Running with config:");
   logger.debug(JSON.stringify(options, null, 2));
@@ -88,7 +87,7 @@ export async function makeRedditCompilation(inputOptions: Options) {
     const normalVideoPaths = await normalizeVideos(
       videoPaths,
       getResolution(options.resolution),
-      "black",
+      "#1e1f21",
       { onComplete: () => bar?.increment() }
     );
     bar?.stop();

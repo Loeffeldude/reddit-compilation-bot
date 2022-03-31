@@ -101,7 +101,6 @@ TODO
 
 ## TODO
 
-- update readme
-- optimise speed a little bit. Maybe change the concat to not do a reencoding
-- make the padding look a it nicer instead of black color
-- write tests for functions that don't have any yet
+- Update readme
+- Optimise speed a little bit. Maybe change the concat to not do a reencoding
+- Make the padding look nicer instead of black color
